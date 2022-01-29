@@ -1,0 +1,324 @@
+<html>
+<head>
+  <link rel="stylesheet" href="https://www.w3schools.com/lib/codemirror.css">
+  <script src="https://www.w3schools.com/lib/codemirror.js"></script>
+  <script src="https://www.w3schools.com/lib/codemirror_jsx.js"></script>
+  <style>
+    .main {
+      display: block;
+      max-width: 1400px;
+      margin: auto;
+    }
+    .main-container {
+      display: flex;
+      flex-direction: column;
+      padding: 0px 30px;
+      height: 100%;
+    }
+    .content-container {
+      height: 90%;
+    }
+    .top-container {
+      height: 50%;
+      display: flex;
+      flex-direction: column;
+      transition-duration: 0.5s;
+    }
+    .top-container.show {
+      height: 100%;
+    }
+    .top-buttons {
+      display: flex;
+      flex-direction: row;
+      justify-content: flex-end;
+      padding: 10px;
+    }
+    .history-dropdown {
+      padding: 0 10px;
+    }
+    .content-container {
+      border: 1px solid rgb(65, 65, 65);
+    }
+    .editor-container {
+      height: 50%;
+      display: flex;
+      flex-direction: column;
+    }
+    .editor-container.hide {
+      height: 5%;
+    }
+    .editor-header {
+      display: flex;
+      flex-direction: row;
+      width: 100%;
+      justify-content: end;
+    }
+    .editor-header {
+      padding: 10px 0px;
+    }
+    .editor-header div {
+      margin: 0px 10px;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+    .editor-header button {
+      padding: 5px 10px;
+      color: #fff;
+      cursor: pointer;
+    }
+    .run {
+      background-color: rgb(6, 175, 6);
+    }
+    .editor-body {
+      display: flex;
+      flex-direction: row;
+      width: 100%;
+      justify-content: center;
+      transition-duration: 0.5s;
+      overflow: hidden;
+      height: 85%;
+    }
+    .editor-area {
+      width: 33%;
+      border: 1px solid rgb(65, 65, 65);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .editor-title {
+      border-bottom: 1px solid rgb(65, 65, 65);
+      padding: 5px;
+    }
+    .textareawrapper {
+      height: 100%;
+    }
+    .CodeMirror {
+      height: 100%;
+    }
+    .save-popup {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%,-50%);
+      padding: 20px;
+      box-shadow: 0px 0px 5px 1px #626262;
+    }
+    .save-popup-title {
+      text-align: center;
+    }
+    .save-popup-close {
+      position: absolute;
+      top: 2px;
+      right: 7px;
+      font-weight: bold;
+      font-size: 20px;
+      cursor: pointer;
+    }
+  </style>
+</head> 
+<body>
+  <main class="main">
+    <div class="main-container">
+      <div class="top-container">
+        <div class="top-buttons">
+          <div class="history-dropdown">
+            <select name="history" id="history">
+              <option value="sec">seç</option>
+            </select>
+          </div>
+          <div class="save-button-container">
+            <button onclick="savePopup()" class="save-button">
+              save
+            </button>
+          </div>
+        </div>
+        <div class="content-container">
+          <div id="iframewrapper">
+          </div>
+        </div>
+      </div>
+      <div class="editor-container">
+        <div class="editor-header">
+          <div onclick="minimize()" class="minimize">Minimize</div>
+          <button onclick="submit()" class="run">Run</button>
+        </div>
+        <div class="editor-body">
+          <div class="js-container editor-area">
+            <div class="editor-title">JS</div>
+            <div class="textareawrapper"></div>
+          </div>
+          <div class="html-container editor-area">
+            <div class="editor-title">HTML</div>
+            <div class="textareawrapper"></div>
+          </div>
+          <div class="css-container editor-area">
+            <div class="editor-title">CSS</div>
+            <div class="textareawrapper"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="save-popup">
+      <h3 class="save-popup-title">Template İsmi giriniz</h3>
+      <input type="text" name="save" id="save-name">
+      <button onclick="save()" class="popup-save-button">Kaydet</button>
+      <span onclick="savePopup()" class="save-popup-close">x</span>
+    </div>
+  </main>
+    
+<script>
+
+
+  const TEST_VARIABLE = {
+    filled: false, //make true if you fill the default template
+    html:'as',
+    css:'ad',
+    js:'da'
+  }
+
+
+
+
+
+  if(typeof localStorage['savedTemplates'] !== 'undefined') {
+    const savedTemps = JSON.parse(localStorage['savedTemplates']);
+    for(let name in savedTemps) {
+    let option = document.createElement('option');
+    option.value = name;
+    option.textContent = name;
+    document.querySelector('#history').appendChild(option)
+    }
+  }
+  var select = document.querySelector('#history');
+  select.addEventListener('change',function(){
+    const val = this.selectedOptions[0].value;
+     if(val !== 'sec') {
+       const temps = JSON.parse(localStorage['savedTemplates']);
+       const selected = temps[val];
+       areaLoader(selected['html'], selected['css'], selected['js'])
+     }
+  });
+
+  function submit() {
+    if(jsEditor.getValue() === '' || cssEditor.getValue() === '' || htmlEditor.getValue() === '') return false;
+    //for style area
+    const style = document.createElement('style');
+    style.innerHTML = cssEditor.getValue();
+    //for script area
+    const script = document.createElement('script');
+    script.type = 'text/javascript'
+    script.innerHTML = jsEditor.getValue();
+
+    var ifr = document.createElement("iframe");
+    ifr.setAttribute("frameborder", "0");
+    ifr.setAttribute("id", "iframeResult");
+    ifr.setAttribute("name", "iframeResult");  
+    ifr.setAttribute("allowfullscreen", "true");  
+    document.getElementById("iframewrapper").innerHTML = "";
+    document.getElementById("iframewrapper").appendChild(ifr);
+
+    window.ifrw = (ifr.contentWindow) ? ifr.contentWindow : (ifr.contentDocument.document) ? ifr.contentDocument.document : ifr.contentDocument;
+    ifrw.document.open();
+    ifrw.document.write(htmlEditor.getValue());
+    ifrw.document.head.appendChild(style); 
+    ifrw.document.head.appendChild(script); 
+    ifrw.document.close();
+  }
+
+  function save(){
+    var name = document.getElementById('save-name').value;
+    if(name === '') {
+      alert('İsim boş olamaz!')
+      return;
+    }
+
+    if(typeof localStorage['savedTemplates'] === 'undefined') {
+      localStorage['savedTemplates'] = '{}';
+    }
+
+    var savedTemps = JSON.parse(localStorage['savedTemplates']);
+
+    if(typeof savedTemps[name] !== 'undefined') {
+      alert('Aynı isimle bir template bulunuyor')
+      return;
+    }
+
+    const temp = {
+      'html': htmlEditor.getValue(),
+      'css': cssEditor.getValue(),
+      'js':jsEditor.getValue()
+    }
+    savedTemps[name] = temp;
+
+    localStorage['savedTemplates'] = JSON.stringify(savedTemps);
+    var option = document.createElement('option');
+    option.value = name;
+    option.textContent = name;
+    document.querySelector('#history').appendChild(option);
+    alert('Template başarılı bir şekilde kaydedildi.')
+  }
+ 
+  function savePopup() {
+    document.querySelector('.save-popup').style.display ===  'block' ? document.querySelector('.save-popup').style.display = 'none' : document.querySelector('.save-popup').style.display = 'block';
+  }
+
+  function minimize() {
+    if(document.querySelector('.editor-container').className.includes('hide')) {
+      document.querySelector('.editor-container').classList.remove('hide')
+      document.querySelector('.top-container').classList.remove('show')
+    }else {
+      document.querySelector('.editor-container').classList.add('hide')
+      document.querySelector('.top-container').classList.add('show')
+    }
+  }
+
+  function areaLoader(html,css,js) {
+    var htmlCon = document.querySelector('.html-container .textareawrapper');
+    htmlCon.innerHTML = '';
+    window.htmlEditor = CodeMirror(htmlCon, {
+      value:html,
+      mode: "text/html",
+      htmlMode: true,
+      smartIndent: false,
+      addModeClass: true
+    });
+    var cscCon = document.querySelector('.css-container .textareawrapper');
+    cscCon.innerHTML = '';
+    window.cssEditor = CodeMirror(cscCon, {
+    value: css,
+    mode:  "css"
+    });
+    var jsCon = document.querySelector('.js-container .textareawrapper');
+    jsCon.innerHTML = '';
+    window.jsEditor = CodeMirror(jsCon, {
+    value: js,
+    mode:  "javascript"
+    });
+    submit();
+  }
+  
+  if(TEST_VARIABLE.filled) {
+    areaLoader(TEST_VARIABLE['html'],TEST_VARIABLE['css'],TEST_VARIABLE['js'])
+  }else  if(typeof localStorage['LastInfo'] !== 'undefined') {
+    const lastTemp = JSON.parse(localStorage['LastInfo']);
+    areaLoader(lastTemp['html'],lastTemp['css'],lastTemp['js'])
+  } else{
+    areaLoader('','','')
+  }
+
+  window.addEventListener('beforeunload', function (e) {
+    const temp = {
+      'html': htmlEditor.getValue(),
+      'css': cssEditor.getValue(),
+      'js':jsEditor.getValue()
+    };
+    localStorage['LastInfo'] = JSON.stringify(temp);
+    
+  });
+  
+  </script>
+  
+</body>
+</html>
